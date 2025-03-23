@@ -4,6 +4,7 @@ Warp lets you create self-contained single binary applications making it simpler
 Warp is written in Rust and is supported on Linux, Windows and macOS.
 
 ### Table of Content
+  * [Fork notes](#fork-notes)
   * [Quickstart with Node.js](#quickstart-with-nodejs)
     + [Linux](#linux)
     + [macOS](#macos)
@@ -17,9 +18,20 @@ Warp is written in Rust and is supported on Linux, Windows and macOS.
     + [Performance](#performance)
     + [Packages cache location](#packages-cache-location)
     + [Runners cache location](#runners-cache-location)
+  * [Development](#development)
   * [Authors](#authors)
   * [License](#license)
 
+## Fork notes
+This is a fork of https://github.com/dgiagio/warp, which doesn't seem to be maintained anymore.
+
+Changes made by me:
+- added support for arm64 architecture
+- updated some dependencies
+- added GitHub Actions workflow
+- renamed `input_dir` argument to `input-dir`
+- optimize for size
+- added build instructions
 
 ## Quickstart with Node.js
 ### Linux
@@ -529,8 +541,6 @@ Warp is a multi-platform tool written in Rust and is comprised of two programs: 
 
 The final self-contained single binary application consists of two parts: 1) runner and 2) the compressed target application executable and dependencies.
 
-<img src="https://image.ibb.co/bBe669/warp_app_binary.png" width="272">
-
 `warp-runner` is a stub application that knows how to find the compressed payload within its own binary, perform extraction to a local cache and execute the target application.
 
 The extraction process only happens the first time the application is ran, or when the self-contained application binary is updated.
@@ -550,8 +560,26 @@ The performance characteristics of the generated self-contained application is r
 - macOS: `$HOME/Library/Application Support/warp/runners`
 - Windows: `%LOCALAPPDATA%\warp\runners`
 
+## Development
+To create a development build on Windows, use
+```shell
+cargo build --release -p warp-runner; cargo build --release -p warp-packer
+```
+To create a development build on Unix, use
+```shell
+cargo build --release -p warp-runner && cargo build --release -p warp-packer
+```
+
+Please note that these builds should only be used for testing! Such builds will ship **old builds** of
+`warp-runner` (from the `old-warp-runners` directory) for any OS and architecture other than
+**your own OS and architecture**.
+
+You can fetch production-ready builds from GitHub Actions after
+pushing your code.
+
 ## Authors
-- Diego Giagio `<diego@giagio.com>`
+- Original author: Diego Giagio `<diego@giagio.com>`
+- Modified by knokko
 
 ## License
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details

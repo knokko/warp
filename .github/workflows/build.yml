@@ -1,0 +1,117 @@
+name: build
+run-name: Builds both warp-runner and warp-packer
+on: [push, pull_request]
+jobs:
+  build-runner-windows-x64:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: cd warp-runner && cargo build --release -p warp-runner
+      - run: cp target/release/warp-runner.exe warp-runner-windows-x64.exe
+      - uses: actions/upload-artifact@v4
+        with:
+          name: warp-runner-windows-x64
+          path: warp-runner-windows-x64.exe
+
+  build-runner-linux-x64:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: cd warp-runner && cargo build --release -p warp-runner
+      - run: cp target/release/warp-runner warp-runner-linux-x64
+      - uses: actions/upload-artifact@v4
+        with:
+          name: warp-runner-linux-x64
+          path: warp-runner-linux-x64
+
+  build-runner-linux-arm64:
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
+      - run: cd warp-runner && cargo build --release -p warp-runner
+      - run: cp target/release/warp-runner warp-runner-linux-arm64
+      - uses: actions/upload-artifact@v4
+        with:
+          name: warp-runner-linux-arm64
+          path: warp-runner-linux-arm64
+
+  build-runner-macos-arm64:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: cd warp-runner && cargo build --release -p warp-runner
+      - run: cp target/release/warp-runner warp-runner-macos-arm64
+      - uses: actions/upload-artifact@v4
+        with:
+          name: warp-runner-macos-arm64
+          path: warp-runner-macos-arm64
+
+  build-runner-macos-x64:
+    runs-on: macos-13
+    steps:
+      - uses: actions/checkout@v4
+      - run: cd warp-runner && cargo build --release -p warp-runner
+      - run: cp target/release/warp-runner warp-runner-macos-x64
+      - uses: actions/upload-artifact@v4
+        with:
+          name: warp-runner-macos-x64
+          path: warp-runner-macos-x64
+
+  combine-runners:
+    runs-on: ubuntu-latest
+    needs: [build-runner-windows-x64, build-runner-linux-x64, build-runner-linux-arm64, build-runner-macos-arm64, build-runner-macos-x64]
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: warp-runner-windows-x64
+          path: warp-runners
+      - uses: actions/download-artifact@v4
+        with:
+          name: warp-runner-linux-x64
+          path: warp-runners
+      - uses: actions/download-artifact@v4
+        with:
+          name: warp-runner-linux-arm64
+          path: warp-runners
+      - uses: actions/download-artifact@v4
+        with:
+          name: warp-runner-macos-arm64
+          path: warp-runners
+      - uses: actions/download-artifact@v4
+        with:
+          name: warp-runner-macos-x64
+          path: warp-runners
+      - uses: actions/upload-artifact@v4
+        with:
+          name: old-warp-runners
+          path: warp-runners/**
+
+  build-packer:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ windows-latest, ubuntu-latest, macos-latest, ubuntu-24.04-arm, macos-13 ]
+    needs: [combine-runners]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: old-warp-runners
+          path: old-warp-runners
+      - run: mkdir target
+      - run: mkdir target/release
+      - if: matrix.os == 'ubuntu-latest'
+        run: cp old-warp-runners/warp-runner-linux-x64 target/release/warp-runner
+      - if: matrix.os == 'ubuntu-24.04-arm'
+        run: cp old-warp-runners/warp-runner-linux-arm64 target/release/warp-runner
+      - if: matrix.os == 'windows-latest'
+        run: cp old-warp-runners/warp-runner-windows-x64.exe target/release/warp-runner.exe
+      - if: matrix.os == 'macos-latest'
+        run: cp old-warp-runners/warp-runner-macos-arm64 target/release/warp-runner
+      - if: matrix.os == 'macos-13'
+        run: cp old-warp-runners/warp-runner-macos-x64 target/release/warp-runner
+      - run: cargo build --release -p warp-packer
+      - uses: actions/upload-artifact@v4
+        with:
+          name: warp-packer-${{ matrix.os }}
+          path: target/release/warp-packer**

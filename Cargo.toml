@@ -1,2 +1,6 @@
 [workspace]
 members = ["warp-runner", "warp-packer"]
+resolver = "3"
+
+[profile.release]
+opt-level = "s"
