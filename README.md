@@ -33,6 +33,7 @@ Changes made by me:
 - optimize for size
 - added build instructions
 - added `use-temp-directory` flag
+- added `exec-args` argument
 
 ## Quickstart with Node.js
 ### Linux

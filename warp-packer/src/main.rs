@@ -78,7 +78,7 @@ macro_rules! bail {
     })
 }
 
-fn patch_runner(arch: &str, exec_name: &str, use_temp_dir: bool) -> io::Result<Vec<u8>> {
+fn patch_runner(arch: &str, exec_name: &str, exec_args: &str, use_temp_dir: bool) -> io::Result<Vec<u8>> {
     // Read runner executable in memory
     let runner_contents = RUNNER_BY_ARCH.get(arch).unwrap();
     let mut buf = runner_contents.to_vec();
@@ -88,6 +88,7 @@ fn patch_runner(arch: &str, exec_name: &str, use_temp_dir: bool) -> io::Result<V
     let mut new_magic = vec![0; magic_len];
     new_magic[..exec_name.len()].clone_from_slice(exec_name.as_bytes());
     new_magic[exec_name.len() + 1] = use_temp_dir as u8;
+    new_magic[exec_name.len() + 2..exec_name.len() + 2 + exec_args.len()].clone_from_slice(exec_args.as_bytes());
 
     // Find the magic buffer offset inside the runner executable
     let mut offs_opt = None;
@@ -169,6 +170,9 @@ struct Cli {
     #[arg(short, long)]
     exec: String,
 
+    #[arg(long, allow_hyphen_values = true)]
+    exec_args: Vec<String>,
+
     /// The output file to be created
     #[arg(short, long)]
     output: String,
@@ -185,8 +189,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         bail!("Cannot access specified input directory {:?}", input_dir);
     }
 
-    if args.exec.len() + 2 >= RUNNER_MAGIC.len() {
-        bail!("Executable name is too long, please consider using a shorter name");
+    if args.exec.len() + args.exec_args.len() + 3 >= RUNNER_MAGIC.len() {
+        bail!("Executable name or arguments are too long, please consider using something shorter");
     }
 
     let exec_path = Path::new(input_dir).join(args.exec.as_str());
@@ -201,7 +205,15 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     }
 
-    let runner_buf = patch_runner(&args.arch, &args.exec, args.use_temp_directory)?;
+    let mut exec_args = String::new();
+    for arg in args.exec_args {
+        exec_args.push_str(&arg);
+        exec_args.push(' ');
+    }
+    if !args.exec.is_empty() {
+        exec_args.pop().unwrap();
+    }
+    let runner_buf = patch_runner(&args.arch, &args.exec, &exec_args, args.use_temp_directory)?;
 
     println!("Compressing input directory {:?}...", input_dir);
     let tmp_dir = TempDir::new(APP_NAME)?;

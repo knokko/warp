@@ -10,13 +10,20 @@ use std::path::Path;
 use std::process::Command;
 use std::process::Stdio;
 
-pub fn execute(target: &Path) -> io::Result<i32> {
+pub fn execute(target: &Path, shipped_args: &str, application_directory: &Path) -> io::Result<i32> {
     trace!("target={:?}", target);
 
-    let args: Vec<String> = env::args().skip(1).collect();
-    trace!("args={:?}", args);
+    let mut my_args: Vec<String> = env::args().skip(1).collect();
+    let mut combined_args = Vec::new();
+    for arg in shipped_args.split_whitespace() {
+        if arg == "%ARGS%" {
+            combined_args.append(&mut my_args);
+        } else {
+            combined_args.push(arg.replace("%APP_DIR%", application_directory.to_str().unwrap()));
+        }
+    }
 
-    do_execute(target, &args)
+    do_execute(target, &combined_args)
 }
 
 #[cfg(target_family = "unix")]

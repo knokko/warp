@@ -1,3 +1,5 @@
+#![windows_subsystem = "windows"]
+
 extern crate dirs;
 #[macro_use]
 extern crate log;
@@ -20,21 +22,30 @@ static RUNNER_OPTIONS_BUF: &'static [u8] = b"tVQhhsFFlGGD3oWV4lEPST8I8FEPP54IM0q
 
 struct RunnerOptions {
     exec_name: &'static str,
+    raw_exec_args: &'static str,
     use_temp_dir: bool,
 }
 
 fn runner_options() -> RunnerOptions {
-    let nul_pos = RUNNER_OPTIONS_BUF.iter()
+    let nul_pos1 = RUNNER_OPTIONS_BUF.iter()
         .position(|elem| *elem == b'\0')
-        .expect("RUNNER_OPTIONS_BUF has no NUL terminator");
-
-    let slice = &RUNNER_OPTIONS_BUF[..(nul_pos + 1)];
-    let exec_name = CStr::from_bytes_with_nul(slice)
-        .expect("Can't convert RUNNER_OPTIONS_BUF slice to CStr")
+        .expect("RUNNER_OPTIONS_BUF has no first NUL terminator");
+    let slice1 = &RUNNER_OPTIONS_BUF[..(nul_pos1 + 1)];
+    let exec_name = CStr::from_bytes_with_nul(slice1)
+        .expect("Can't convert RUNNER_OPTIONS_BUF exec slice to CStr")
         .to_str()
-        .expect("Can't convert RUNNER_OPTIONS_BUF CStr to str");
-    let use_temp_dir = RUNNER_OPTIONS_BUF[nul_pos + 1] == 1;
-    RunnerOptions { exec_name, use_temp_dir }
+        .expect("Can't convert RUNNER_OPTIONS_BUF exec CStr to str");
+
+    let use_temp_dir = RUNNER_OPTIONS_BUF[nul_pos1 + 1] == 1;
+    let nul_pos2 = nul_pos1 + 2 + RUNNER_OPTIONS_BUF.iter().skip(nul_pos1 + 2)
+        .position(|elem| *elem == b'\0')
+        .expect("RUNNER_OPTIONS_BUF has no second NUL terminator");
+    let slice2 = &RUNNER_OPTIONS_BUF[(nul_pos1 + 2)..nul_pos2 + 1];
+    let raw_exec_args = CStr::from_bytes_with_nul(slice2)
+        .expect("Can't convert RUNNER_OPTIONS_BUF args slice to CStr")
+        .to_str()
+        .expect("Can't convert RUNNER_OPTIONS_BUF args CStr to str");
+    RunnerOptions { exec_name, raw_exec_args, use_temp_dir }
 }
 
 fn cache_path(target: &str) -> PathBuf {
@@ -89,7 +100,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         extract(&self_path, &application_path)?;
     }
 
-    let exit_code = executor::execute(&target_path)?;
+    let exit_code = executor::execute(&target_path, options.raw_exec_args, &application_path)?;
     if options.use_temp_dir {
         fs::remove_dir_all(application_path)?;
     }
