@@ -78,7 +78,7 @@ macro_rules! bail {
     })
 }
 
-fn patch_runner(arch: &str, exec_name: &str) -> io::Result<Vec<u8>> {
+fn patch_runner(arch: &str, exec_name: &str, use_temp_dir: bool) -> io::Result<Vec<u8>> {
     // Read runner executable in memory
     let runner_contents = RUNNER_BY_ARCH.get(arch).unwrap();
     let mut buf = runner_contents.to_vec();
@@ -87,6 +87,7 @@ fn patch_runner(arch: &str, exec_name: &str) -> io::Result<Vec<u8>> {
     let magic_len = RUNNER_MAGIC.len();
     let mut new_magic = vec![0; magic_len];
     new_magic[..exec_name.len()].clone_from_slice(exec_name.as_bytes());
+    new_magic[exec_name.len() + 1] = use_temp_dir as u8;
 
     // Find the magic buffer offset inside the runner executable
     let mut offs_opt = None;
@@ -158,6 +159,12 @@ struct Cli {
     #[arg(short, long)]
     input_dir: String,
 
+    /// Whether the runner should extract the application to a temporary directory, instead of
+    /// extracting it to a persistent cache. The temporary directory will be deleted when the
+    /// application finishes.
+    #[arg(short, long)]
+    use_temp_directory: bool,
+
     /// The path to the executable file, relative to input_dir
     #[arg(short, long)]
     exec: String,
@@ -178,7 +185,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         bail!("Cannot access specified input directory {:?}", input_dir);
     }
 
-    if args.exec.len() >= RUNNER_MAGIC.len() {
+    if args.exec.len() + 2 >= RUNNER_MAGIC.len() {
         bail!("Executable name is too long, please consider using a shorter name");
     }
 
@@ -194,7 +201,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     }
 
-    let runner_buf = patch_runner(&args.arch, &args.exec)?;
+    let runner_buf = patch_runner(&args.arch, &args.exec, args.use_temp_directory)?;
 
     println!("Compressing input directory {:?}...", input_dir);
     let tmp_dir = TempDir::new(APP_NAME)?;

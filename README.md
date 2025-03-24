@@ -32,6 +32,7 @@ Changes made by me:
 - renamed `input_dir` argument to `input-dir`
 - optimize for size
 - added build instructions
+- added `use-temp-directory` flag
 
 ## Quickstart with Node.js
 ### Linux

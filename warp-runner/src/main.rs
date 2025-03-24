@@ -11,22 +11,30 @@ use std::fs;
 use std::io;
 use std::path::*;
 use std::process;
+use tempdir::TempDir;
 
 mod extractor;
 mod executor;
 
-static TARGET_FILE_NAME_BUF: &'static [u8] = b"tVQhhsFFlGGD3oWV4lEPST8I8FEPP54IM0q7daes4E1y3p2U2wlJRYmWmjPYfkhZ0PlT14Ls0j8fdDkoj33f2BlRJavLj3mWGibJsGt5uLAtrCDtvxikZ8UX2mQDCrgE\0";
+static RUNNER_OPTIONS_BUF: &'static [u8] = b"tVQhhsFFlGGD3oWV4lEPST8I8FEPP54IM0q7daes4E1y3p2U2wlJRYmWmjPYfkhZ0PlT14Ls0j8fdDkoj33f2BlRJavLj3mWGibJsGt5uLAtrCDtvxikZ8UX2mQDCrgE\0";
 
-fn target_file_name() -> &'static str {
-    let nul_pos = TARGET_FILE_NAME_BUF.iter()
+struct RunnerOptions {
+    exec_name: &'static str,
+    use_temp_dir: bool,
+}
+
+fn runner_options() -> RunnerOptions {
+    let nul_pos = RUNNER_OPTIONS_BUF.iter()
         .position(|elem| *elem == b'\0')
-        .expect("TARGET_FILE_NAME_BUF has no NUL terminator");
+        .expect("RUNNER_OPTIONS_BUF has no NUL terminator");
 
-    let slice = &TARGET_FILE_NAME_BUF[..(nul_pos + 1)];
-    CStr::from_bytes_with_nul(slice)
-        .expect("Can't convert TARGET_FILE_NAME_BUF slice to CStr")
+    let slice = &RUNNER_OPTIONS_BUF[..(nul_pos + 1)];
+    let exec_name = CStr::from_bytes_with_nul(slice)
+        .expect("Can't convert RUNNER_OPTIONS_BUF slice to CStr")
         .to_str()
-        .expect("Can't convert TARGET_FILE_NAME_BUF CStr to str")
+        .expect("Can't convert RUNNER_OPTIONS_BUF CStr to str");
+    let use_temp_dir = RUNNER_OPTIONS_BUF[nul_pos + 1] == 1;
+    RunnerOptions { exec_name, use_temp_dir }
 }
 
 fn cache_path(target: &str) -> PathBuf {
@@ -49,34 +57,41 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 
     let self_path = env::current_exe()?;
-    let self_file_name = self_path.file_name().unwrap();
-    let cache_path = cache_path(&self_file_name.to_string_lossy());
+    let options = runner_options();
+    let application_path = if options.use_temp_dir {
+        TempDir::new("warp")?.into_path()
+    } else {
 
-    trace!("self_path={:?}", self_path);
-    trace!("self_file_name={:?}", self_file_name);
-    trace!("cache_path={:?}", cache_path);
+        let self_file_name = self_path.file_name().unwrap();
+        let cache_path = cache_path(&self_file_name.to_string_lossy());
 
-    let target_file_name = target_file_name();
-    let target_path = cache_path.join(target_file_name);
+        trace!("self_path={:?}", self_path);
+        trace!("self_file_name={:?}", self_file_name);
+        trace!("cache_path={:?}", cache_path);
+        cache_path
+    };
+    let target_path = application_path.join(options.exec_name);
 
-    trace!("target_exec={:?}", target_file_name);
+    trace!("target_exec={:?}", options.exec_name);
     trace!("target_path={:?}", target_path);
 
-    match fs::metadata(&cache_path) {
-        Ok(cache) => {
+    let mut should_extract = true;
+    if !options.use_temp_dir {
+        if let Ok(cache) = fs::metadata(&application_path) {
             if cache.modified()? >= fs::metadata(&self_path)?.modified()? {
+                should_extract = false;
                 trace!("cache is up-to-date");
-            } else {
-                trace!("cache is outdated");
-                extract(&self_path, &cache_path)?;
             }
-        }
-        Err(_) => {
-            trace!("cache not found");
-            extract(&self_path, &cache_path)?;
         }
     }
 
+    if should_extract {
+        extract(&self_path, &application_path)?;
+    }
+
     let exit_code = executor::execute(&target_path)?;
+    if options.use_temp_dir {
+        fs::remove_dir_all(application_path)?;
+    }
     process::exit(exit_code);
 }
