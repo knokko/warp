@@ -1,12 +1,11 @@
 [package]
 name = "warp-packer"
-version = "0.4.0"
+version = "0.4.1"
 authors = ["Diego Giagio <diego@giagio.com>", "knokko"]
 edition = "2024"
 
 [dependencies]
 dirs = "6.0.0"
-reqwest = "0.12.15"
 tempdir = "0.3.7"
 flate2 = "1.0"
 tar = "0.4"

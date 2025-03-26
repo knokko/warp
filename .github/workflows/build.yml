@@ -17,8 +17,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: cd warp-runner && cargo build --release -p warp-runner
-      - run: cp target/release/warp-runner warp-runner-linux-x64
+      - run: rustup target add x86_64-unknown-linux-musl
+      - run: cd warp-runner && cargo build --release -p warp-runner --target x86_64-unknown-linux-musl
+      - run: cp target/x86_64-unknown-linux-musl/release/warp-runner warp-runner-linux-x64
       - uses: actions/upload-artifact@v4
         with:
           name: warp-runner-linux-x64
@@ -28,8 +29,9 @@ jobs:
     runs-on: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v4
-      - run: cd warp-runner && cargo build --release -p warp-runner
-      - run: cp target/release/warp-runner warp-runner-linux-arm64
+      - run: rustup target add aarch64-unknown-linux-musl
+      - run: cd warp-runner && cargo build --release -p warp-runner --target aarch64-unknown-linux-musl
+      - run: cp target/aarch64-unknown-linux-musl/release/warp-runner warp-runner-linux-arm64
       - uses: actions/upload-artifact@v4
         with:
           name: warp-runner-linux-arm64
@@ -87,10 +89,30 @@ jobs:
           path: warp-runners/**
 
   build-packer:
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.os.name }}
     strategy:
       matrix:
-        os: [ windows-latest, ubuntu-latest, macos-latest, ubuntu-24.04-arm, macos-13 ]
+        os:
+          - name: windows-latest
+            target: ""
+            command: ""
+            releaseDirectory: ""
+          - name: ubuntu-latest
+            target: " --target x86_64-unknown-linux-musl"
+            command: "rustup target add x86_64-unknown-linux-musl && "
+            releaseDirectory: "x86_64-unknown-linux-musl/"
+          - name: macos-latest
+            target: ""
+            command: ""
+            releaseDirectory: ""
+          - name: ubuntu-24.04-arm
+            target: " --target aarch64-unknown-linux-musl"
+            command: "rustup target add aarch64-unknown-linux-musl && "
+            releaseDirectory: "aarch64-unknown-linux-musl/"
+          - name: macos-13
+            target: ""
+            command: ""
+            releaseDirectory: ""
     needs: [combine-runners]
     steps:
       - uses: actions/checkout@v4
@@ -100,18 +122,18 @@ jobs:
           path: old-warp-runners
       - run: mkdir target
       - run: mkdir target/release
-      - if: matrix.os == 'ubuntu-latest'
+      - if: matrix.os.name == 'ubuntu-latest'
         run: cp old-warp-runners/warp-runner-linux-x64 target/release/warp-runner
-      - if: matrix.os == 'ubuntu-24.04-arm'
+      - if: matrix.os.name == 'ubuntu-24.04-arm'
         run: cp old-warp-runners/warp-runner-linux-arm64 target/release/warp-runner
-      - if: matrix.os == 'windows-latest'
+      - if: matrix.os.name == 'windows-latest'
         run: cp old-warp-runners/warp-runner-windows-x64.exe target/release/warp-runner.exe
-      - if: matrix.os == 'macos-latest'
+      - if: matrix.os.name == 'macos-latest'
         run: cp old-warp-runners/warp-runner-macos-arm64 target/release/warp-runner
-      - if: matrix.os == 'macos-13'
+      - if: matrix.os.name == 'macos-13'
         run: cp old-warp-runners/warp-runner-macos-x64 target/release/warp-runner
-      - run: cargo build --release -p warp-packer
+      - run: ${{ matrix.os.command }}cargo build --release -p warp-packer${{ matrix.os.target }}
       - uses: actions/upload-artifact@v4
         with:
-          name: warp-packer-${{ matrix.os }}
-          path: target/release/warp-packer**
+          name: warp-packer-${{ matrix.os.name }}
+          path: target/${{ matrix.os.releaseDirectory }}release/warp-packer**
