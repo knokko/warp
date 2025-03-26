@@ -34,6 +34,7 @@ Changes made by me:
 - added build instructions
 - added `use-temp-directory` flag
 - added `exec-args` argument
+- removed `reqwest` dependency that seems to be unused
 
 ## Quickstart with Node.js
 ### Linux
