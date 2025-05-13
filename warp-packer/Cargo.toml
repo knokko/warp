@@ -1,6 +1,6 @@
 [package]
 name = "warp-packer"
-version = "0.4.1"
+version = "0.4.4"
 authors = ["Diego Giagio <diego@giagio.com>", "knokko"]
 edition = "2024"
 

@@ -13,6 +13,18 @@ jobs:
           name: warp-runner-windows-x64
           path: warp-runner-windows-x64.exe
 
+  build-runner-windows-arm64:
+    runs-on: windows-11-arm
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cd warp-runner && cargo build --release -p warp-runner
+      - run: cp target/release/warp-runner.exe warp-runner-windows-arm64.exe
+      - uses: actions/upload-artifact@v4
+        with:
+          name: warp-runner-windows-arm64
+          path: warp-runner-windows-arm64.exe
+
   build-runner-linux-x64:
     runs-on: ubuntu-latest
     steps:
@@ -61,11 +73,15 @@ jobs:
 
   combine-runners:
     runs-on: ubuntu-latest
-    needs: [build-runner-windows-x64, build-runner-linux-x64, build-runner-linux-arm64, build-runner-macos-arm64, build-runner-macos-x64]
+    needs: [build-runner-windows-x64, build-runner-windows-arm64, build-runner-linux-x64, build-runner-linux-arm64, build-runner-macos-arm64, build-runner-macos-x64]
     steps:
       - uses: actions/download-artifact@v4
         with:
           name: warp-runner-windows-x64
+          path: warp-runners
+      - uses: actions/download-artifact@v4
+        with:
+          name: warp-runner-windows-arm64
           path: warp-runners
       - uses: actions/download-artifact@v4
         with:
@@ -97,6 +113,10 @@ jobs:
             target: ""
             command: ""
             releaseDirectory: ""
+          - name: windows-11-arm
+            target: ""
+            command: ""
+            releaseDirectory: ""
           - name: ubuntu-latest
             target: " --target x86_64-unknown-linux-musl"
             command: "rustup target add x86_64-unknown-linux-musl && "
@@ -116,6 +136,8 @@ jobs:
     needs: [combine-runners]
     steps:
       - uses: actions/checkout@v4
+      - if: matrix.os.name == 'windows-11-arm'
+        uses: dtolnay/rust-toolchain@stable
       - uses: actions/download-artifact@v4
         with:
           name: old-warp-runners
@@ -128,6 +150,8 @@ jobs:
         run: cp old-warp-runners/warp-runner-linux-arm64 target/release/warp-runner
       - if: matrix.os.name == 'windows-latest'
         run: cp old-warp-runners/warp-runner-windows-x64.exe target/release/warp-runner.exe
+      - if: matrix.os.name == 'windows-11-arm'
+        run: cp old-warp-runners/warp-runner-windows-arm64.exe target/release/warp-runner.exe
       - if: matrix.os.name == 'macos-latest'
         run: cp old-warp-runners/warp-runner-macos-arm64 target/release/warp-runner
       - if: matrix.os.name == 'macos-13'

@@ -56,6 +56,12 @@ const RUNNER_WINDOWS_X64: &[u8] = include_bytes!("../../target/release/warp-runn
 #[cfg(not(all(target_os = "windows", target_arch = "x86_64")))]
 const RUNNER_WINDOWS_X64: &[u8] = include_bytes!("../../old-warp-runners/warp-runner-windows-x64.exe");
 
+#[cfg(all(target_os = "windows", target_arch = "aarch64"))]
+const RUNNER_WINDOWS_ARM64: &[u8] = include_bytes!("../../target/release/warp-runner.exe");
+
+#[cfg(not(all(target_os = "windows", target_arch = "aarch64")))]
+const RUNNER_WINDOWS_ARM64: &[u8] = include_bytes!("../../old-warp-runners/warp-runner-windows-arm64.exe");
+
 lazy_static! {
     static ref RUNNER_BY_ARCH: HashMap<&'static str, &'static [u8]> = {
         let mut m = HashMap::new();
@@ -64,6 +70,7 @@ lazy_static! {
         m.insert("macos-x64", RUNNER_MACOS_X64);
         m.insert("macos-arm64", RUNNER_MACOS_ARM64);
         m.insert("windows-x64", RUNNER_WINDOWS_X64);
+        m.insert("windows-arm64", RUNNER_WINDOWS_ARM64);
         m
     };
 }
