@@ -34,7 +34,9 @@ Changes made by me:
 - added build instructions
 - added `use-temp-directory` flag
 - added `exec-args` argument
-- removed `reqwest` dependency that seems to be unused
+- removed `reqwest` dependency that does not appear to be used
+- removed `deranged` dependency that does not appear to be used
+- added `static_vsruntime` dependency to avoid the need for end users to install VCRUNTIME140.dll
 
 ## Quickstart with Node.js
 ### Linux
