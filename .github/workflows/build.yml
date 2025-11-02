@@ -61,7 +61,7 @@ jobs:
           path: warp-runner-macos-arm64
 
   build-runner-macos-x64:
-    runs-on: macos-13
+    runs-on: macos-15-intel
     steps:
       - uses: actions/checkout@v4
       - run: cd warp-runner && cargo build --release -p warp-runner
@@ -129,7 +129,7 @@ jobs:
             target: " --target aarch64-unknown-linux-musl"
             command: "rustup target add aarch64-unknown-linux-musl && "
             releaseDirectory: "aarch64-unknown-linux-musl/"
-          - name: macos-13
+          - name: macos-15-intel
             target: ""
             command: ""
             releaseDirectory: ""
@@ -154,7 +154,7 @@ jobs:
         run: cp old-warp-runners/warp-runner-windows-arm64.exe target/release/warp-runner.exe
       - if: matrix.os.name == 'macos-latest'
         run: cp old-warp-runners/warp-runner-macos-arm64 target/release/warp-runner
-      - if: matrix.os.name == 'macos-13'
+      - if: matrix.os.name == 'macos-15-intel'
         run: cp old-warp-runners/warp-runner-macos-x64 target/release/warp-runner
       - run: ${{ matrix.os.command }}cargo build --release -p warp-packer${{ matrix.os.target }}
       - uses: actions/upload-artifact@v4
