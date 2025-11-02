@@ -563,7 +563,7 @@ pushing your code.
 
 ## Authors
 - Original author: Diego Giagio `<diego@giagio.com>`
-- Modified by knokko
+- Modified by knokko and OpenHelios
 
 ## License
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details
